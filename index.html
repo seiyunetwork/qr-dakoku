@@ -7,6 +7,14 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>勤怠打刻</title>
+<!-- ホーム画面アイコン（Android: manifest / iOS: apple-touch-icon） -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a2a4a">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="勤怠打刻">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; background: #0f1626; color: #fff; font-family: sans-serif; overflow: hidden; }
@@ -152,7 +160,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v20';
+const FRONT_VER = 'v26';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
