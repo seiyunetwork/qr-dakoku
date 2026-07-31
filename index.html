@@ -112,6 +112,23 @@
   }
   #saveBtn { background: #2e7d32; color: #fff; }
   #cancelBtn { background: #444; color: #fff; }
+
+  /* 打刻順序の確認ダイアログ */
+  #confirm {
+    position: fixed; inset: 0; z-index: 35; display: none;
+    align-items: center; justify-content: center; background: rgba(0,0,0,.75); padding: 24px;
+  }
+  #confirm.show { display: flex; }
+  #confirmBox {
+    background: #3a2f12; border: 2px solid #d9a93a; border-radius: 14px;
+    padding: 24px; width: min(94vw, 480px); display: flex; flex-direction: column; gap: 16px;
+  }
+  #confirmMsg { font-size: 1.35rem; line-height: 1.5; font-weight: bold; }
+  #confirm .row { display: flex; flex-direction: column; gap: 10px; }
+  #confirm button { font-size: 1.2rem; font-weight: bold; padding: 16px; border: none; border-radius: 10px; cursor: pointer; }
+  #cfSwitch { background: #2e7d32; color: #fff; }
+  #cfKeep   { background: #1e5aa8; color: #fff; }
+  #cfCancel { background: #555; color: #fff; }
 </style>
 </head>
 <body>
@@ -161,11 +178,22 @@
   </div>
 </div>
 
+<div id="confirm">
+  <div id="confirmBox">
+    <div id="confirmMsg"></div>
+    <div class="row">
+      <button id="cfSwitch"></button>
+      <button id="cfKeep"></button>
+      <button id="cfCancel">やめる（打刻しない）</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v30';
+const FRONT_VER = 'v31';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -326,6 +354,9 @@ let noModeWarnedAt = 0;
 function onScanSuccess(decodedText) {
   const now = Date.now();
 
+  // 確認ダイアログ表示中はスキャンを受け付けない
+  if (confirmOpen) return;
+
   // モード未選択なら打刻せず注意を促す
   if (!currentMode) {
     if (now - noModeWarnedAt > 2000) {
@@ -357,8 +388,42 @@ function onScanSuccess(decodedText) {
     body: JSON.stringify({ employeeId: decodedText, kyotenId: KYOTEN_ID, type: currentMode, key: KIOSK_KEY })
   })
     .then(res => res.json())
-    .then(showResult)
+    .then(res => { if (res.confirm) askConfirm(res, decodedText); else showResult(res); })
     .catch(err => showResult({ success: false, message: '通信エラー: ' + err.message }));
+}
+
+// ===== 打刻順序の確認ダイアログ =====
+const confirmEl = document.getElementById('confirm');
+const confirmMsg = document.getElementById('confirmMsg');
+const cfKeep = document.getElementById('cfKeep');
+const cfSwitch = document.getElementById('cfSwitch');
+const cfCancel = document.getElementById('cfCancel');
+let confirmOpen = false;
+
+function askConfirm(res, code) {
+  confirmOpen = true;
+  beep(false);
+  result.className = ''; // 受付バナーを消す
+  confirmMsg.textContent = res.message + 'どちらで記録しますか？';
+  cfSwitch.textContent = MODE_LABEL[res.suggestedType] + 'にする（押し間違いの場合）';
+  cfKeep.textContent = 'このまま' + MODE_LABEL[res.requestedType] + 'で記録';
+  confirmEl.classList.add('show');
+  const send = (t) => {
+    confirmEl.classList.remove('show');
+    confirmOpen = false;
+    beep(true);
+    showBanner('wait', '⏳', MODE_LABEL[t] + ' 受付しました', MODE_LABEL[t], '送信中…');
+    fetch(EXEC_URL, {
+      method: 'POST',
+      body: JSON.stringify({ employeeId: code, kyotenId: KYOTEN_ID, type: t, key: KIOSK_KEY, confirm: true })
+    })
+      .then(r => r.json())
+      .then(showResult)
+      .catch(e => showResult({ success: false, message: '通信エラー: ' + e.message }));
+  };
+  cfSwitch.onclick = () => send(res.suggestedType);
+  cfKeep.onclick = () => send(res.requestedType);
+  cfCancel.onclick = () => { confirmEl.classList.remove('show'); confirmOpen = false; };
 }
 
 function showResult(res) {
