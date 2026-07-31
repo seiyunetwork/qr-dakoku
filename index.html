@@ -202,7 +202,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v36';
+const FRONT_VER = 'v37';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -249,13 +249,30 @@ function setMode(m) {
 }
 modeIn.addEventListener('click', () => setMode('in'));
 modeOut.addEventListener('click', () => setMode('out'));
-setMode(''); // 初期は未選択（選択を促す）
 
-// 時計
+// 朝の自動出勤設定
+const AUTO_IN_HOUR = 5;   // この時刻(5時)になったら自動で出勤モードにする
+const MORNING_END_HOUR = 12; // 起動時、5時〜この時刻(正午)までなら出勤を初期選択
+let autoInDay = '';       // 5時の自動セットを1日1回にするための記録
+
+// 起動時：朝(5:00〜12:00)なら出勤を初期選択。それ以外は未選択
+(function () {
+  const h = new Date().getHours();
+  if (h >= AUTO_IN_HOUR && h < MORNING_END_HOUR) setMode('in');
+  else setMode('');
+})();
+
+// 時計＋朝5時になったら自動で出勤モードへ
 setInterval(() => {
   const d = new Date();
   document.getElementById('clock').textContent =
     [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':');
+  // 5:00ちょうどに出勤モードへ（1日1回）
+  const dayKey = d.toDateString();
+  if (d.getHours() === AUTO_IN_HOUR && d.getMinutes() === 0 && autoInDay !== dayKey) {
+    autoInDay = dayKey;
+    setMode('in');
+  }
 }, 250);
 
 function refreshOrgTitle() {
