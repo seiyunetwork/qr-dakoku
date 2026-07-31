@@ -90,6 +90,13 @@
     font-size: .7rem; color: #6b7a90; pointer-events: none;
   }
 
+  /* 更新（リロード）ボタン */
+  #reloadBtn {
+    position: fixed; left: 8px; bottom: 6px; z-index: 40;
+    font-size: .95rem; padding: 8px 14px; border-radius: 8px;
+    border: 1px solid #33415c; background: rgba(26,37,64,.85); color: #cdd8ea; cursor: pointer;
+  }
+
   /* 設定ダイアログ */
   #settings {
     position: fixed; inset: 0; z-index: 30; display: none;
@@ -153,6 +160,7 @@
   <div id="status">待機中</div>
 </div>
 <div id="ver"></div>
+<button id="reloadBtn" title="画面を更新">↻ 更新</button>
 
 <div id="result">
   <div id="resultIcon"></div>
@@ -193,7 +201,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v31';
+const FRONT_VER = 'v32';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -218,6 +226,8 @@ const companyName = document.getElementById('companyName');
 const subtitle = document.getElementById('subtitle');
 const verEl = document.getElementById('ver');
 verEl.textContent = '画面 ' + FRONT_VER;
+// 画面更新（リロード）ボタン
+document.getElementById('reloadBtn').addEventListener('click', () => location.reload());
 
 let html5Qr = null;
 let currentMode = '';   // 'in'(出勤) or 'out'(退勤)。選択必須。通信は文字化け回避のためASCII
