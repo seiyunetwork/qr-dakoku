@@ -202,7 +202,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v34';
+const FRONT_VER = 'v35';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -398,13 +398,23 @@ function onScanSuccess(decodedText) {
   showBanner('wait', '⏳', MODE_LABEL[currentMode] + ' 受付しました', MODE_LABEL[currentMode], '送信中…');
 
   // 送信はバックグラウンド。スキャンは止めないので次の人がすぐかざせる
-  fetch(EXEC_URL, {
-    method: 'POST',
-    body: JSON.stringify({ employeeId: decodedText, kyotenId: KYOTEN_ID, type: currentMode, key: KIOSK_KEY })
-  })
-    .then(res => res.json())
+  postJSON({ employeeId: decodedText, kyotenId: KYOTEN_ID, type: currentMode, key: KIOSK_KEY })
     .then(res => { if (res.confirm) askConfirm(res, decodedText); else showResult(res); })
-    .catch(err => showResult({ success: false, message: '通信エラー: ' + err.message }));
+    .catch(err => showResult({ success: false, message: netErr(err) }));
+}
+
+// タイムアウト付きPOST（返ってこない時に「送信中」で固まるのを防ぐ）
+function postJSON(body, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs || 20000);
+  return fetch(EXEC_URL, { method: 'POST', body: JSON.stringify(body), signal: ctrl.signal })
+    .then(r => r.json())
+    .finally(() => clearTimeout(timer));
+}
+function netErr(err) {
+  return (err && err.name === 'AbortError')
+    ? '通信がタイムアウトしました。もう一度お試しください。'
+    : '通信エラー: ' + (err && err.message ? err.message : err);
 }
 
 // ===== 打刻順序の確認ダイアログ =====
@@ -428,13 +438,9 @@ function askConfirm(res, code) {
     confirmOpen = false;
     beep(true);
     showBanner('wait', '⏳', MODE_LABEL[t] + ' 受付しました', MODE_LABEL[t], '送信中…');
-    fetch(EXEC_URL, {
-      method: 'POST',
-      body: JSON.stringify({ employeeId: code, kyotenId: KYOTEN_ID, type: t, key: KIOSK_KEY, confirm: true })
-    })
-      .then(r => r.json())
+    postJSON({ employeeId: code, kyotenId: KYOTEN_ID, type: t, key: KIOSK_KEY, confirm: true })
       .then(showResult)
-      .catch(e => showResult({ success: false, message: '通信エラー: ' + e.message }));
+      .catch(e => showResult({ success: false, message: netErr(e) }));
   };
   cfSwitch.onclick = () => send(res.suggestedType);
   cfKeep.onclick = () => send(res.requestedType);
