@@ -149,6 +149,11 @@
     <h2>拠点の選択</h2>
     <label>この端末を設置する拠点を選んでください（出勤場所・退勤場所として記録されます）</label>
     <select id="kyotenSelect"><option value="">読み込み中…</option></select>
+    <label>使用するカメラ</label>
+    <select id="cameraSelect">
+      <option value="environment">背面カメラ（通常）</option>
+      <option value="user">前面カメラ（自分側・インカメラ）</option>
+    </select>
     <div class="row">
       <button id="cancelBtn">キャンセル</button>
       <button id="saveBtn">保存</button>
@@ -160,7 +165,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v29';
+const FRONT_VER = 'v30';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -168,6 +173,9 @@ const KIOSK_KEY = new URLSearchParams(location.search).get('key') || '';
 // 拠点: 端末に保存した値を使う（初回は拠点マスタから選択）
 let KYOTEN_ID = localStorage.getItem('kyotenId') || '';
 let KYOTEN_NAME = localStorage.getItem('kyotenName') || '';
+// カメラの向き: environment=背面 / user=前面（インカメラ）。端末ごとに保存
+let FACING = localStorage.getItem('facing') || 'environment';
+let scanning = false;
 
 const COOLDOWN_MS = 6000;      // 同一QRの連続読み取り防止（前で立ち止まっても再打刻しない）
 const RESULT_SHOW_MS = 2500;   // 結果表示時間
@@ -215,6 +223,8 @@ refreshOrgTitle();
 // ===== 拠点選択ダイアログ =====
 const settings = document.getElementById('settings');
 const kyotenSelect = document.getElementById('kyotenSelect');
+const cameraSelect = document.getElementById('cameraSelect');
+cameraSelect.value = FACING;
 
 // 拠点マスタから一覧を取得してプルダウンに反映
 function loadKyotenList() {
@@ -256,7 +266,13 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   localStorage.setItem('kyotenId', KYOTEN_ID);
   localStorage.setItem('kyotenName', KYOTEN_NAME);
   refreshOrgTitle();
+  // カメラの向きを保存。変更されていてカメラ稼働中なら切り替え
+  const newFacing = cameraSelect.value;
+  const facingChanged = (newFacing !== FACING);
+  FACING = newFacing;
+  localStorage.setItem('facing', FACING);
   settings.classList.remove('show');
+  if (facingChanged && scanning) restartCamera();
 });
 
 if (!KIOSK_KEY) {
@@ -275,14 +291,15 @@ async function startScan() {
     return;
   }
   status_.textContent = 'カメラ起動中…';
-  html5Qr = new Html5Qrcode('reader', { verbose: false });
+  if (!html5Qr) html5Qr = new Html5Qrcode('reader', { verbose: false });
   const config = {
     fps: 12,
     qrbox: (w, h) => { const m = Math.floor(Math.min(w, h) * 0.7); return { width: m, height: m }; },
     aspectRatio: window.innerWidth / (window.innerHeight - 120),
   };
   try {
-    await html5Qr.start({ facingMode: 'environment' }, config, onScanSuccess, () => {});
+    await html5Qr.start({ facingMode: FACING }, config, onScanSuccess, () => {});
+    scanning = true;
     overlay.style.display = 'none';
     status_.textContent = 'スキャン待機中';
     guide.textContent = '';
@@ -291,6 +308,13 @@ async function startScan() {
     document.getElementById('startNote').textContent =
       'カメラを起動できません（' + (e && e.name ? e.name : e) + '）。ブラウザのサイト設定でカメラを「許可」にして、もう一度お試しください。';
   }
+}
+
+// カメラ向き変更時などに、いったん停止してから再起動する
+async function restartCamera() {
+  if (html5Qr && scanning) { try { await html5Qr.stop(); } catch (e) {} }
+  scanning = false;
+  startScan();
 }
 
 // 同じQRを直近に読んだかの判定用（コード→最終読み取り時刻）
