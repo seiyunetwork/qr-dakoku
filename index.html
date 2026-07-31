@@ -121,6 +121,10 @@
     <div id="orgTitle"><span id="companyName">杉原サポート株式会社</span> <span id="kyotenNameLabel">拠点未設定</span><span id="gear" title="拠点を変更">⚙</span></div>
     <div id="subtitle">出勤 / 退勤 を選んでください</div>
   </header>
+  <div id="modeBar">
+    <button id="modeIn" class="modeBtn">▶ 出勤</button>
+    <button id="modeOut" class="modeBtn">✅ 退勤</button>
+  </div>
   <div id="camArea">
     <div id="reader"></div>
     <div id="guide"></div>
@@ -128,10 +132,6 @@
       <button id="startBtn">タップして打刻を開始</button>
       <div id="startNote">カメラを使用します。<br>許可を求められたら「許可」を押してください。</div>
     </div>
-  </div>
-  <div id="modeBar">
-    <button id="modeIn" class="modeBtn">▶ 出勤</button>
-    <button id="modeOut" class="modeBtn">✅ 退勤</button>
   </div>
   <div id="status">待機中</div>
 </div>
@@ -160,7 +160,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v26';
+const FRONT_VER = 'v27';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -299,7 +299,8 @@ function onScanSuccess(decodedText) {
     if (now - noModeWarnedAt > 2000) {
       noModeWarnedAt = now;
       beep(false);
-      showBanner('ng', '👆', 'まず「出勤」か「退勤」を選んでください', '', '');
+      showBanner('ng', '☝', '先に「出勤」か「退勤」を選んでください',
+        '上のボタンを押してからQRをかざしてください', 'この画面は自動で戻ります', 3000);
     }
     return;
   }
