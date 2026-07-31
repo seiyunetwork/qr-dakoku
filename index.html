@@ -160,7 +160,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v28';
+const FRONT_VER = 'v29';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -356,7 +356,7 @@ function showResult(res) {
     showBanner('ng', '✖',
       res.message || 'エラーが発生しました',                      // 大：理由（本日2回済み／連続打刻 等）
       '登録できませんでした',                                     // 見出し
-      'もう一度お試しください',                                   // 補足
+      'この画面は自動で戻ります',                                 // 補足
       4500);
   }
 }
