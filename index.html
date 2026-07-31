@@ -201,7 +201,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v32';
+const FRONT_VER = 'v33';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -226,8 +226,12 @@ const companyName = document.getElementById('companyName');
 const subtitle = document.getElementById('subtitle');
 const verEl = document.getElementById('ver');
 verEl.textContent = '画面 ' + FRONT_VER;
-// 画面更新（リロード）ボタン
-document.getElementById('reloadBtn').addEventListener('click', () => location.reload());
+// 画面更新（リロード）ボタン。キャッシュを確実に回避するためURLに毎回違うパラメータを付けて開き直す
+document.getElementById('reloadBtn').addEventListener('click', () => {
+  const u = new URL(location.href);
+  u.searchParams.set('_r', Date.now());   // キャッシュ回避用の使い捨てパラメータ
+  location.replace(u.toString());
+});
 
 let html5Qr = null;
 let currentMode = '';   // 'in'(出勤) or 'out'(退勤)。選択必須。通信は文字化け回避のためASCII
