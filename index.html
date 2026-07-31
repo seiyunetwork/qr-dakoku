@@ -74,6 +74,7 @@
   #result.ok   { background: #0a7a3c; display: flex; }
   #result.ng   { background: #a3242c; display: flex; }
   #result.wait { background: #1e4078; display: flex; }
+  #result.warn { background: #b26a00; display: flex; }
   #resultIcon { font-size: 5.5rem; line-height: 1; }
   #resultType { font-size: 1.8rem; font-weight: bold; letter-spacing: 1px; }
   #resultName { font-size: 2.6rem; font-weight: bold; line-height: 1.35; }
@@ -201,7 +202,7 @@
 <script>
 // ===== 設定 =====
 // 画面（フロント）のバージョン。更新のたびに上げる。タブレットが最新版かの確認用
-const FRONT_VER = 'v33';
+const FRONT_VER = 'v34';
 // 打刻API（Google Apps Script WebアプリのURL）
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwNKAfalCU06mubkn3aap1LnoyimYNFdOBM8adK4onD-7WW6Tidqbxceai8aQBpCHgmRQ/exec';
 // アクセスキー（URLの ?key= から取得。HTMLには秘密情報を埋め込まない）
@@ -441,7 +442,17 @@ function askConfirm(res, code) {
 }
 
 function showResult(res) {
-  if (res.success) {
+  if (res.success && res.warn) {
+    // 順序が不正なまま記録（例：出勤なしの退勤）。管理者への修正依頼を促す
+    beep(false);
+    if (navigator.vibrate) navigator.vibrate([120, 80, 120, 80, 120]);
+    const nth = (res.slot && String(res.slot).slice(-1) === '2') ? '2回目' : '1回目';
+    showBanner('warn', '⚠',
+      (res.employeeName || '') + ' さん',                        // 大：氏名
+      res.type + '（' + nth + '）を記録しました（要確認）',        // 見出し
+      res.warnMessage || '',                                     // 補足：管理者に修正依頼を
+      7000);
+  } else if (res.success) {
     // 出勤=おはよう / 退勤=お疲れ様。1回目/2回目も表示
     if (navigator.vibrate) navigator.vibrate(200);
     const icon = res.type === '出勤' ? '▶' : '✅';
